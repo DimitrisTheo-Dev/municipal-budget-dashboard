@@ -8,7 +8,7 @@ export default function HomePage() {
         <title>Municipal Budget Dashboard</title>
         <meta
           name="description"
-          content="View or compare annual municipal spendings in Greece using Diavgeia Open Data."
+          content="View annual municipal or public-sector spendings in Greece using Diavgeia Open Data."
         />
       </Head>
 
@@ -28,7 +28,7 @@ export default function HomePage() {
               Municipal Budget Dashboard
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-base text-slate-500">
-              Δες τις δαπάνες ενός ελληνικού φορέα ή σύγκρινε δύο φορείς, με κατανομή κατηγοριών και αναλυτικές εγγραφές.
+              Δες τις δαπάνες ενός ελληνικού φορέα, με κατανομή κατηγοριών και αναλυτικές εγγραφές.
             </p>
           </div>
 

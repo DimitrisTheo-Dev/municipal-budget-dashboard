@@ -52,21 +52,18 @@ export default function CompareForm() {
   const router = useRouter();
   const currentYear = new Date().getFullYear();
 
-  const [municipalityA, setMunicipalityA] = useState('');
-  const [municipalityB, setMunicipalityB] = useState('');
+  const [municipality, setMunicipality] = useState('');
   const [year, setYear] = useState(String(currentYear - 1));
   const [formError, setFormError] = useState('');
 
-  const { results: suggestionsA, loading: loadingA } = useOrgSuggestions(municipalityA);
-  const { results: suggestionsB, loading: loadingB } = useOrgSuggestions(municipalityB);
+  const { results: suggestions, loading } = useOrgSuggestions(municipality);
 
   const yearOptions = useMemo(() => {
     return Array.from({ length: 8 }, (_, index) => String(currentYear - index));
   }, [currentYear]);
 
   const onReset = () => {
-    setMunicipalityA('');
-    setMunicipalityB('');
+    setMunicipality('');
     setYear(String(currentYear - 1));
     setFormError('');
   };
@@ -74,92 +71,52 @@ export default function CompareForm() {
   const onSubmit = (event) => {
     event.preventDefault();
 
-    const firstMunicipality = municipalityA.trim() || municipalityB.trim();
-    const secondMunicipality =
-      municipalityA.trim() && municipalityB.trim() ? municipalityB.trim() : '';
+    const normalizedMunicipality = municipality.trim();
 
-    if (!firstMunicipality) {
-      setFormError('Συμπλήρωσε τουλάχιστον έναν δήμο ή φορέα.');
-      return;
-    }
-
-    if (
-      secondMunicipality &&
-      firstMunicipality.toLowerCase() === secondMunicipality.toLowerCase()
-    ) {
-      setFormError('Επέλεξε δύο διαφορετικούς δήμους.');
+    if (!normalizedMunicipality) {
+      setFormError('Συμπλήρωσε έναν δήμο ή φορέα.');
       return;
     }
 
     setFormError('');
     const params = new URLSearchParams({
-      m1: firstMunicipality,
+      m1: normalizedMunicipality,
       year
     });
-
-    if (secondMunicipality) {
-      params.set('m2', secondMunicipality);
-    }
 
     router.push(`/compare?${params.toString()}`);
   };
 
   return (
-    <form onSubmit={onSubmit} className="card space-y-5" aria-label="Municipality compare form">
+    <form onSubmit={onSubmit} className="card space-y-5" aria-label="Municipality search form">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Αναζήτηση δήμων / φορέων</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Διάλεξε έναν φορέα για προβολή στοιχείων ή πρόσθεσε και δεύτερο για σύγκριση.
+          Διάλεξε έναν φορέα για να δεις τα συνολικά ποσά, τις κατηγορίες και τις αναλυτικές εγγραφές.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label htmlFor="municipalityA" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Δήμος / Φορέας A
-          </label>
-          <div className="relative">
-            <input
-              id="municipalityA"
-              className="input pl-10"
-              placeholder="π.χ. Σαλαμίνα"
-              value={municipalityA}
-              list="municipality-a-list"
-              onChange={(event) => setMunicipalityA(event.target.value)}
-            />
-          </div>
-          <datalist id="municipality-a-list">
-            {suggestionsA.map((item) => (
-              <option key={item.uid} value={item.title} />
-            ))}
-          </datalist>
-          <div className="min-h-4 text-2xs text-slate-400" aria-live="polite">
-            {loadingA ? 'Αναζήτηση...' : suggestionsA.length ? `${suggestionsA.length} αποτελέσματα` : ''}
-          </div>
+      <div className="space-y-1.5">
+        <label htmlFor="municipality" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Δήμος / Φορέας
+        </label>
+        <div className="relative">
+          <input
+            id="municipality"
+            className="input pl-10"
+            placeholder="π.χ. Σαλαμίνα"
+            value={municipality}
+            list="municipality-list"
+            onChange={(event) => setMunicipality(event.target.value)}
+          />
         </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="municipalityB" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Δήμος / Φορέας B (προαιρετικό)
-          </label>
-          <div className="relative">
-            <input
-              id="municipalityB"
-              className="input pl-10"
-              placeholder="π.χ. Καλλιθέα"
-              value={municipalityB}
-              list="municipality-b-list"
-              onChange={(event) => setMunicipalityB(event.target.value)}
-            />
-          </div>
-          <datalist id="municipality-b-list">
-            {suggestionsB.map((item) => (
-              <option key={item.uid} value={item.title} />
-            ))}
-          </datalist>
-          <div className="min-h-4 text-2xs text-slate-400" aria-live="polite">
-            {loadingB ? 'Αναζήτηση...' : suggestionsB.length ? `${suggestionsB.length} αποτελέσματα` : ''}
-          </div>
+        <datalist id="municipality-list">
+          {suggestions.map((item) => (
+            <option key={item.uid} value={item.title} />
+          ))}
+        </datalist>
+        <div className="min-h-4 text-2xs text-slate-400" aria-live="polite">
+          {loading ? 'Αναζήτηση...' : suggestions.length ? `${suggestions.length} αποτελέσματα` : ''}
         </div>
       </div>
 

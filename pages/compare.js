@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import BarChartComparison from '../components/BarChartComparison';
 import PieChartComparison from '../components/PieChartComparison';
@@ -49,32 +49,6 @@ function findBestAvailableYear(years = [], requestedYear = '') {
   return availableYears[0] || '';
 }
 
-function findLatestCommonYear(yearsA = [], yearsB = [], requestedYear = '') {
-  const normalizedYearsA = normalizeYearValues(yearsA);
-  const normalizedYearsB = new Set(normalizeYearValues(yearsB));
-  const commonYears = normalizedYearsA.filter((value) => normalizedYearsB.has(value));
-
-  if (!commonYears.length) {
-    return '';
-  }
-
-  if (requestedYear && commonYears.includes(requestedYear)) {
-    return requestedYear;
-  }
-
-  const requestedYearNumber = Number.parseInt(requestedYear, 10);
-  if (Number.isFinite(requestedYearNumber)) {
-    const sameOrEarlierYear = commonYears.find(
-      (value) => (Number.parseInt(value, 10) || 0) <= requestedYearNumber
-    );
-    if (sameOrEarlierYear) {
-      return sameOrEarlierYear;
-    }
-  }
-
-  return commonYears[0] || '';
-}
-
 function formatYears(values = []) {
   const years = normalizeYearValues(values);
   return years.length ? years.join(', ') : 'κανένα';
@@ -92,8 +66,6 @@ async function fetchJson(url, signal) {
 
   return { response, data };
 }
-
-/* ---- Icons ---- */
 
 function ArrowLeftIcon() {
   return (
@@ -115,21 +87,9 @@ function RefreshIcon() {
   );
 }
 
-function TrendUpIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-rose-500">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  );
-}
-
-/* ---- Loading skeleton ---- */
-
 function LoadingSkeleton({ stageMessage }) {
   return (
     <div className="space-y-6 animate-in">
-      {/* Stage indicator */}
       <div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50/50 px-5 py-4">
         <div className="relative flex h-5 w-5 items-center justify-center">
           <span className="absolute h-5 w-5 animate-ping rounded-full bg-brand-400/30" />
@@ -141,46 +101,34 @@ function LoadingSkeleton({ stageMessage }) {
         </div>
       </div>
 
-      {/* Summary card skeletons */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {[0, 1].map((i) => (
-          <div key={i} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel">
-            <div className="skeleton mb-3 h-4 w-32" />
-            <div className="skeleton mb-2 h-8 w-40" />
-            <div className="skeleton h-3 w-20" />
-          </div>
-        ))}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel">
+        <div className="skeleton mb-3 h-4 w-32" />
+        <div className="skeleton mb-2 h-8 w-40" />
+        <div className="skeleton h-3 w-20" />
       </div>
 
-      {/* Chart skeleton */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel">
         <div className="skeleton mb-4 h-4 w-48" />
         <div className="skeleton h-64 w-full" />
       </div>
 
-      {/* Pie skeleton */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel">
         <div className="skeleton mb-4 h-4 w-56" />
-        <div className="grid gap-4 md:grid-cols-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="flex flex-col items-center gap-3 rounded-xl border border-slate-100 p-4">
-              <div className="skeleton h-44 w-44 rounded-full" />
-              <div className="flex gap-2">
-                {[0, 1, 2].map((j) => (
-                  <div key={j} className="skeleton h-6 w-16 rounded-full" />
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-100 p-4">
+          <div className="skeleton h-44 w-44 rounded-full" />
+          <div className="flex gap-2">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="skeleton h-6 w-16 rounded-full" />
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Table skeleton */}
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel">
         <div className="skeleton mb-4 h-4 w-44" />
         <div className="space-y-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="skeleton h-10 w-full" />
+          {[0, 1, 2, 3, 4].map((index) => (
+            <div key={index} className="skeleton h-10 w-full" />
           ))}
         </div>
       </div>
@@ -188,25 +136,17 @@ function LoadingSkeleton({ stageMessage }) {
   );
 }
 
-/* ---- Summary card ---- */
-
-function SummaryCard({ label, total, count, isHigher }) {
+function SummaryCard({ label, total, count }) {
   return (
     <article className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-panel transition-shadow hover:shadow-panel-lg">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium text-slate-500">{label}</h3>
-        {isHigher ? <TrendUpIcon /> : null}
-      </div>
+      <h3 className="text-sm font-medium text-slate-500">{label}</h3>
       <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{formatCurrency(total)}</p>
       <div className="mt-2 flex items-center gap-2">
         <span className="badge-blue">{count} εγγραφές</span>
-        {isHigher ? <span className="badge-rose">Υψηλότερες δαπάνες</span> : null}
       </div>
     </article>
   );
 }
-
-/* ---- Error state ---- */
 
 function ErrorState({ message, onRetry }) {
   return (
@@ -228,28 +168,21 @@ function ErrorState({ message, onRetry }) {
   );
 }
 
-/* ---- Main page ---- */
-
 export default function ComparePage() {
   const router = useRouter();
   const abortRef = useRef(null);
 
-  const municipalityAQuery = asString(router.query.m1).trim();
-  const municipalityBQuery = asString(router.query.m2).trim();
-  const municipalityA = municipalityAQuery || municipalityBQuery;
-  const municipalityB = municipalityAQuery && municipalityBQuery ? municipalityBQuery : '';
+  const municipality = asString(router.query.m1).trim();
   const year = asString(router.query.year).trim();
-  const hasComparison = Boolean(municipalityB);
 
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [stageMessage, setStageMessage] = useState('');
   const [retryKey, setRetryKey] = useState(0);
   const [activeCategory, setActiveCategory] = useState('');
-  const [resultA, setResultA] = useState(null);
-  const [resultB, setResultB] = useState(null);
+  const [result, setResult] = useState(null);
   const [lastUpdated, setLastUpdated] = useState('');
-  const [comparisonYear, setComparisonYear] = useState('');
+  const [resolvedYear, setResolvedYear] = useState('');
   const [yearNotice, setYearNotice] = useState('');
 
   useEffect(() => {
@@ -257,7 +190,7 @@ export default function ComparePage() {
       return;
     }
 
-    if (!municipalityA || !year) {
+    if (!municipality || !year) {
       setError('Λείπουν στοιχεία αναζήτησης. Επιστρέψτε στην αρχική σελίδα.');
       setStatus('error');
       return;
@@ -266,41 +199,27 @@ export default function ComparePage() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    async function runComparison() {
+    async function runSearch() {
       setStatus('loading');
       setError('');
       setActiveCategory('');
-      setResultA(null);
-      setResultB(null);
+      setResult(null);
       setLastUpdated('');
-      setComparisonYear(year);
+      setResolvedYear(year);
       setYearNotice('');
-      setStageMessage(hasComparison ? 'Αναζήτηση οργανισμών...' : 'Αναζήτηση οργανισμού...');
+      setStageMessage('Αναζήτηση οργανισμού...');
 
       try {
-        const orgResults = await Promise.all([
-          fetchJson(`/api/searchOrgs?term=${encodeURIComponent(municipalityA)}`, controller.signal),
-          ...(hasComparison
-            ? [fetchJson(`/api/searchOrgs?term=${encodeURIComponent(municipalityB)}`, controller.signal)]
-            : [])
-        ]);
+        const { response: orgResponse, data: orgData } = await fetchJson(
+          `/api/searchOrgs?term=${encodeURIComponent(municipality)}`,
+          controller.signal
+        );
 
-        const orgAResult = orgResults[0];
-        const orgBResult = orgResults[1] || null;
-        const orgAResponse = orgAResult.response;
-        const orgAData = orgAResult.data;
-        const orgBResponse = orgBResult?.response || null;
-        const orgBData = orgBResult?.data || null;
-
-        if (!orgAResponse.ok || !orgAData.selected) {
-          throw new Error(`Δεν βρέθηκε οργανισμός για: ${municipalityA}`);
+        if (!orgResponse.ok || !orgData.selected) {
+          throw new Error(`Δεν βρέθηκε οργανισμός για: ${municipality}`);
         }
 
-        if (hasComparison && (!orgBResponse?.ok || !orgBData?.selected)) {
-          throw new Error(`Δεν βρέθηκε οργανισμός για: ${municipalityB}`);
-        }
-
-        setStageMessage(hasComparison ? 'Λήψη δαπανών...' : 'Λήψη δαπανών...');
+        setStageMessage('Λήψη δαπανών...');
 
         async function fetchBudgetForOrg(selectedOrg, targetYear) {
           return fetchJson(
@@ -313,161 +232,72 @@ export default function ComparePage() {
           );
         }
 
-        let resolvedComparisonYear = year;
+        let nextResolvedYear = year;
         let fallbackNotice = '';
-        let budgetAResponse;
-        let budgetAData;
-        let budgetBResponse = null;
-        let budgetBData = null;
+        let budgetResult = await fetchBudgetForOrg(orgData.selected, nextResolvedYear);
+        let budgetResponse = budgetResult.response;
+        let budgetData = budgetResult.data;
 
-        if (hasComparison) {
-          async function fetchBudgetPair(targetYear) {
-            const [budgetAResult, budgetBResult] = await Promise.all([
-              fetchBudgetForOrg(orgAData.selected, targetYear),
-              fetchBudgetForOrg(orgBData.selected, targetYear)
-            ]);
+        if (budgetResponse.status === 409) {
+          const fallbackYear = findBestAvailableYear(budgetData.availableYears, year);
 
-            return {
-              budgetAResponse: budgetAResult.response,
-              budgetAData: budgetAResult.data,
-              budgetBResponse: budgetBResult.response,
-              budgetBData: budgetBResult.data
-            };
-          }
-
-          ({ budgetAResponse, budgetAData, budgetBResponse, budgetBData } =
-            await fetchBudgetPair(resolvedComparisonYear));
-
-          if (budgetAResponse.status === 409 || budgetBResponse.status === 409) {
-            const fallbackYear = findLatestCommonYear(
-              budgetAData.availableYears,
-              budgetBData.availableYears,
-              year
+          if (!fallbackYear) {
+            throw new Error(
+              `Δεν υπάρχουν δημοσιευμένα έτη για ${orgData.selected.title}. Διαθέσιμα έτη: ${formatYears(
+                budgetData.availableYears
+              )}.`
             );
-
-            if (!fallbackYear) {
-              throw new Error(
-                `Δεν υπάρχουν κοινά δημοσιευμένα έτη. ${orgAData.selected.title}: ${formatYears(
-                  budgetAData.availableYears
-                )}. ${orgBData.selected.title}: ${formatYears(budgetBData.availableYears)}.`
-              );
-            }
-
-            resolvedComparisonYear = fallbackYear;
-            fallbackNotice =
-              year === fallbackYear
-                ? ''
-                : `Δεν βρέθηκαν δημοσιευμένες δαπάνες και για τους δύο φορείς για το ${year}. Εμφανίζονται τα πιο πρόσφατα κοινά στοιχεία για το ${fallbackYear}.`;
-
-            setStageMessage(`Λήψη δαπανών για το ${resolvedComparisonYear}...`);
-
-            ({ budgetAResponse, budgetAData, budgetBResponse, budgetBData } =
-              await fetchBudgetPair(resolvedComparisonYear));
           }
-        } else {
-          let budgetAResult = await fetchBudgetForOrg(orgAData.selected, resolvedComparisonYear);
-          budgetAResponse = budgetAResult.response;
-          budgetAData = budgetAResult.data;
 
-          if (budgetAResponse.status === 409) {
-            const fallbackYear = findBestAvailableYear(budgetAData.availableYears, year);
+          nextResolvedYear = fallbackYear;
+          fallbackNotice =
+            year === fallbackYear
+              ? ''
+              : `Δεν βρέθηκαν δημοσιευμένες δαπάνες για το ${year}. Εμφανίζονται τα πιο πρόσφατα διαθέσιμα στοιχεία για το ${fallbackYear}.`;
 
-            if (!fallbackYear) {
-              throw new Error(
-                `Δεν υπάρχουν δημοσιευμένα έτη για ${orgAData.selected.title}. Διαθέσιμα έτη: ${formatYears(
-                  budgetAData.availableYears
-                )}.`
-              );
-            }
-
-            resolvedComparisonYear = fallbackYear;
-            fallbackNotice =
-              year === fallbackYear
-                ? ''
-                : `Δεν βρέθηκαν δημοσιευμένες δαπάνες για το ${year}. Εμφανίζονται τα πιο πρόσφατα διαθέσιμα στοιχεία για το ${fallbackYear}.`;
-
-            setStageMessage(`Λήψη δαπανών για το ${resolvedComparisonYear}...`);
-            budgetAResult = await fetchBudgetForOrg(orgAData.selected, resolvedComparisonYear);
-            budgetAResponse = budgetAResult.response;
-            budgetAData = budgetAResult.data;
-          }
+          setStageMessage(`Λήψη δαπανών για το ${nextResolvedYear}...`);
+          budgetResult = await fetchBudgetForOrg(orgData.selected, nextResolvedYear);
+          budgetResponse = budgetResult.response;
+          budgetData = budgetResult.data;
         }
 
-        if (!budgetAResponse.ok) {
-          throw new Error(budgetAData.error || `Αποτυχία φόρτωσης για ${orgAData.selected.title}`);
+        if (!budgetResponse.ok) {
+          throw new Error(budgetData.error || `Αποτυχία φόρτωσης για ${orgData.selected.title}`);
         }
 
-        if (hasComparison && !budgetBResponse?.ok) {
-          throw new Error(budgetBData.error || `Αποτυχία φόρτωσης για ${orgBData.selected.title}`);
-        }
-
-        setResultA({
-          query: municipalityA,
-          org: orgAData.selected,
-          budget: budgetAData
+        setResult({
+          query: municipality,
+          org: orgData.selected,
+          budget: budgetData
         });
-
-        setResultB(
-          hasComparison
-            ? {
-                query: municipalityB,
-                org: orgBData.selected,
-                budget: budgetBData
-              }
-            : null
-        );
-
-        setComparisonYear(resolvedComparisonYear);
+        setResolvedYear(nextResolvedYear);
         setYearNotice(fallbackNotice);
         setLastUpdated(new Date().toISOString());
         setStatus('done');
       } catch (fetchError) {
         if (fetchError.name === 'AbortError') {
-          setError('Η σύγκριση ακυρώθηκε.');
+          setError('Η φόρτωση ακυρώθηκε.');
           setStatus('idle');
           return;
         }
 
-        setError(fetchError.message || 'Παρουσιάστηκε σφάλμα κατά τη σύγκριση.');
+        setError(fetchError.message || 'Παρουσιάστηκε σφάλμα κατά τη φόρτωση.');
         setStatus('error');
       }
     }
 
-    runComparison();
+    runSearch();
 
     return () => {
       controller.abort();
     };
-  }, [hasComparison, municipalityA, municipalityB, router.isReady, year, retryKey]);
-
-  const insight = useMemo(() => {
-    if (!resultA || !resultB) {
-      return null;
-    }
-
-    const totalA = resultA.budget.summary.total;
-    const totalB = resultB.budget.summary.total;
-
-    if (totalA === totalB) {
-      return `Οι δύο φορείς έχουν ίσες συνολικές δαπάνες για το ${comparisonYear || year}.`;
-    }
-
-    const higher = totalA > totalB ? resultA.org.title : resultB.org.title;
-    const lowerTotal = Math.min(totalA, totalB) || 1;
-    const diffPercent = (((Math.max(totalA, totalB) - lowerTotal) / lowerTotal) * 100).toFixed(1);
-
-    return `${higher} δαπάνησε ${diffPercent}% περισσότερο για το ${comparisonYear || year}.`;
-  }, [comparisonYear, resultA, resultB, year]);
+  }, [municipality, router.isReady, year, retryKey]);
 
   return (
     <>
       <Head>
         <title>
-          {municipalityA && municipalityB
-            ? `${municipalityA} vs ${municipalityB} | Budget Dashboard`
-            : municipalityA
-              ? `${municipalityA} | Budget Dashboard`
-              : 'Comparison | Municipal Budget Dashboard'}
+          {municipality ? `${municipality} | Budget Dashboard` : 'Results | Municipal Budget Dashboard'}
         </title>
       </Head>
 
@@ -475,7 +305,6 @@ export default function ComparePage() {
         <div className="h-1 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400" />
 
         <main className="mx-auto w-full max-w-7xl space-y-5 px-4 py-6 md:px-6 md:py-8">
-          {/* Header */}
           <header className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link
@@ -487,18 +316,11 @@ export default function ComparePage() {
               </Link>
               <div>
                 <h1 className="text-lg font-bold tracking-tight text-slate-900 md:text-xl">
-                  {hasComparison ? (
-                    <>
-                      {municipalityA || '...'} <span className="font-normal text-slate-400">vs</span>{' '}
-                      {municipalityB || '...'}
-                    </>
-                  ) : (
-                    municipalityA || '...'
-                  )}
+                  {municipality || '...'}
                 </h1>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="badge-blue">{comparisonYear || year || '...'}</span>
-                  {comparisonYear && year && comparisonYear !== year ? (
+                  <span className="badge-blue">{resolvedYear || year || '...'}</span>
+                  {resolvedYear && year && resolvedYear !== year ? (
                     <span>Ζητήθηκε: {year}</span>
                   ) : null}
                   {lastUpdated ? (
@@ -524,31 +346,28 @@ export default function ComparePage() {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => setRetryKey((v) => v + 1)}
+                  onClick={() => setRetryKey((value) => value + 1)}
                 >
                   <RefreshIcon />
                   Ανανέωση
                 </button>
               ) : null}
               <Link href="/" className="btn-secondary">
-                Νέα σύγκριση
+                Νέα αναζήτηση
               </Link>
             </div>
           </header>
 
-          {/* Loading */}
           {status === 'loading' ? <LoadingSkeleton stageMessage={stageMessage} /> : null}
 
-          {/* Error */}
           {status === 'error' ? (
             <ErrorState
-              message={`${error} Δοκίμασε ξανά ή άλλαξε ονόματα δήμων.`}
-              onRetry={() => setRetryKey((v) => v + 1)}
+              message={`${error} Δοκίμασε ξανά ή άλλαξε το όνομα φορέα.`}
+              onRetry={() => setRetryKey((value) => value + 1)}
             />
           ) : null}
 
-          {/* Results */}
-          {status === 'done' && resultA && resultB ? (
+          {status === 'done' && result ? (
             <div className="space-y-5 animate-in">
               {yearNotice ? (
                 <section className="rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
@@ -556,60 +375,36 @@ export default function ComparePage() {
                 </section>
               ) : null}
 
-              {/* Summary cards */}
-              <section className={`grid gap-4 ${resultB ? 'md:grid-cols-2' : ''}`}>
+              <section className="grid gap-4">
                 <SummaryCard
-                  label={resultA.org.title}
-                  total={resultA.budget.summary.total}
-                  count={resultA.budget.summary.recordCount}
-                  isHigher={Boolean(resultB) && resultA.budget.summary.total > resultB.budget.summary.total}
+                  label={result.org.title}
+                  total={result.budget.summary.total}
+                  count={result.budget.summary.recordCount}
                 />
-                {resultB ? (
-                  <SummaryCard
-                    label={resultB.org.title}
-                    total={resultB.budget.summary.total}
-                    count={resultB.budget.summary.recordCount}
-                    isHigher={resultB.budget.summary.total > resultA.budget.summary.total}
-                  />
-                ) : null}
               </section>
 
-              {/* Insight */}
-              {insight ? (
-                <section className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-brand-50/50 px-5 py-3.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-700">
-                      <path d="M12 2v4" /><path d="m15.5 7.5 2.8-2.8" /><path d="M20 12h-4" />
-                      <path d="m15.5 16.5 2.8 2.8" /><path d="M12 18v4" /><path d="m4.2 19.8 2.8-2.8" />
-                      <path d="M4 12h4" /><path d="m4.2 4.2 2.8 2.8" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-brand-900">{insight}</p>
-                </section>
-              ) : null}
-
               <BarChartComparison
-                municipalityA={resultA.org.title}
-                municipalityB={resultB?.org.title || ''}
-                totalA={resultA.budget.summary.total}
-                totalB={resultB?.budget.summary.total || 0}
-                year={comparisonYear || year}
+                municipalityA={result.org.title}
+                municipalityB=""
+                totalA={result.budget.summary.total}
+                totalB={0}
+                year={resolvedYear || year}
               />
 
               <PieChartComparison
-                municipalityA={resultA.org.title}
-                municipalityB={resultB?.org.title || ''}
-                categoriesA={resultA.budget.summary.categories}
-                categoriesB={resultB?.budget.summary.categories || []}
+                municipalityA={result.org.title}
+                municipalityB=""
+                categoriesA={result.budget.summary.categories}
+                categoriesB={[]}
                 activeCategory={activeCategory}
                 onCategorySelect={setActiveCategory}
               />
 
               <BudgetTableComparison
-                municipalityA={resultA.org.title}
-                municipalityB={resultB?.org.title || ''}
-                recordsA={resultA.budget.records}
-                recordsB={resultB?.budget.records || []}
+                municipalityA={result.org.title}
+                municipalityB=""
+                recordsA={result.budget.records}
+                recordsB={[]}
                 activeCategory={activeCategory}
               />
             </div>
