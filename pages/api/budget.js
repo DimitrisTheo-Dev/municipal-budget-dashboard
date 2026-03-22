@@ -1,11 +1,14 @@
 import {
   buildBudgetSummary,
   diavgeiaUrl,
+  findFallbackStatement,
+  findStatementByYear,
   fetchWithTimeout,
+  getStatementYears,
   normalizeSpendingItem,
-  parseAmount
+  parseAmount,
+  sortStatements
 } from '../../lib/diavgeia';
-import { createMockSpendings } from '../../lib/mockData';
 
 const PAGE_LIMIT = 200;
 const MAX_PAGES = 6;
@@ -19,19 +22,31 @@ function categoryArray(byCategory) {
     .sort((a, b) => b.amount - a.amount);
 }
 
-async function fetchLiveSpendings(uid, year) {
+function isTruthy(value) {
+  return ['1', 'true', 'yes'].includes(String(value || '').trim().toLowerCase());
+}
+
+async function fetchSpendingStatements(uid) {
+  const url = diavgeiaUrl('/statements', {
+    org_uid: uid,
+    is_spending: 1,
+    limit: 0
+  });
+
+  const payload = await fetchWithTimeout(url, 9000);
+  return Array.isArray(payload.items) ? payload.items : [];
+}
+
+async function fetchLiveSpendings(statementUid) {
   const allItems = [];
   let reportedCount = 0;
   let reportedSum = 0;
 
-  // Basic pagination loop in case Diavgeia returns partial pages.
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const offset = page * PAGE_LIMIT;
-    const url = diavgeiaUrl('/spendings', {
-      org_uid: uid,
-      year,
-      sortColumn: 'date',
-      sortType: 'desc',
+    const url = diavgeiaUrl('/spending_revisions', {
+      is_published: 1,
+      statement_uid: statementUid,
       limit: PAGE_LIMIT,
       offset
     });
@@ -73,58 +88,100 @@ export default async function handler(req, res) {
   const uid = String(req.query.uid || '').trim();
   const year = String(req.query.year || '').trim();
   const orgTitle = String(req.query.orgTitle || 'ΔΗΜΟΣ').trim();
-  const forceMock = req.query.mock === '1' || req.query.mock === 'true';
+  const strictYear = isTruthy(req.query.strictYear);
 
   if (!uid || !year) {
     return res.status(400).json({ error: 'Missing query parameters: uid and year are required' });
   }
 
-  let source = 'live';
-  let fallbackReason = null;
-  let rawItems = [];
-  let reportedSum = 0;
-
   try {
-    if (forceMock) {
-      throw new Error('Forced mock mode requested');
+    const statements = sortStatements(await fetchSpendingStatements(uid));
+    const availableYears = getStatementYears(statements);
+
+    if (!statements.length) {
+      return res.status(404).json({
+        error: 'Δεν βρέθηκαν δημοσιευμένες δηλώσεις δαπανών για τον επιλεγμένο φορέα.',
+        uid,
+        orgTitle,
+        requestedYear: year,
+        resolvedYear: null,
+        availableYears,
+        source: 'live'
+      });
     }
 
-    // Fetch spendings from Diavgeia using org UID and selected year.
-    const live = await fetchLiveSpendings(uid, year);
-    rawItems = live.items;
-    reportedSum = live.reportedSum;
+    let statement = findStatementByYear(statements, year);
+    let usedFallbackYear = false;
+
+    if (!statement) {
+      if (strictYear) {
+        return res.status(409).json({
+          error: `Δεν υπάρχουν δημοσιευμένες δαπάνες για το ${year}.`,
+          uid,
+          orgTitle,
+          requestedYear: year,
+          resolvedYear: null,
+          availableYears,
+          source: 'live'
+        });
+      }
+
+      statement = findFallbackStatement(statements, year);
+      usedFallbackYear = Boolean(statement && String(statement.year || '') !== year);
+    }
+
+    if (!statement) {
+      return res.status(404).json({
+        error: 'Δεν κατέστη δυνατή η επιλογή δημοσιευμένης δήλωσης δαπανών.',
+        uid,
+        orgTitle,
+        requestedYear: year,
+        resolvedYear: null,
+        availableYears,
+        source: 'live'
+      });
+    }
+
+    const live = await fetchLiveSpendings(statement.uid);
+    const rawItems = live.items;
+    const reportedSum = live.reportedSum;
+
+    const resolvedYear = String(statement.year || year);
+    const normalizedRecords = rawItems.map((item, index) => {
+      const normalizedItem = normalizeSpendingItem(item, index);
+
+      if (!normalizedItem.orgTitle) {
+        normalizedItem.orgTitle = orgTitle;
+      }
+
+      return normalizedItem;
+    });
+    const summary = buildBudgetSummary(normalizedRecords);
+
+    return res.status(200).json({
+      uid,
+      year: resolvedYear,
+      requestedYear: year,
+      resolvedYear,
+      usedFallbackYear,
+      availableYears,
+      statementUid: statement.uid,
+      statementTitle: statement.title || '',
+      orgTitle: normalizedRecords[0]?.orgTitle || orgTitle,
+      source: 'live',
+      reportedTotal: reportedSum,
+      summary: {
+        total: Number(summary.total.toFixed(2)),
+        recordCount: summary.recordCount,
+        byCategory: summary.byCategory,
+        categories: categoryArray(summary.byCategory)
+      },
+      records: normalizedRecords,
+      lastUpdated: new Date().toISOString()
+    });
   } catch (error) {
-    source = 'mock';
-    fallbackReason = error.message;
+    return res.status(502).json({
+      error: `Αποτυχία σύνδεσης με Diavgeia: ${error.message}`
+    });
   }
-
-  if (!rawItems.length) {
-    source = 'mock';
-
-    // Use deterministic mock records so the UI works even when API is down.
-    rawItems = createMockSpendings(uid, year, orgTitle);
-    if (!fallbackReason && !rawItems.length) {
-      fallbackReason = 'No records returned from live API';
-    }
-  }
-
-  const normalizedRecords = rawItems.map((item, index) => normalizeSpendingItem(item, index));
-  const summary = buildBudgetSummary(normalizedRecords);
-
-  return res.status(200).json({
-    uid,
-    year,
-    orgTitle: normalizedRecords[0]?.orgTitle || orgTitle,
-    source,
-    fallbackReason,
-    reportedTotal: reportedSum,
-    summary: {
-      total: Number(summary.total.toFixed(2)),
-      recordCount: summary.recordCount,
-      byCategory: summary.byCategory,
-      categories: categoryArray(summary.byCategory)
-    },
-    records: normalizedRecords,
-    lastUpdated: new Date().toISOString()
-  });
 }
